@@ -1,0 +1,54 @@
+{
+  "models": {
+    "baseline": {
+      "mae": 3.9,
+      "rmse": 5.46,
+      "r2": 0.4476,
+      "pct_within_5min": 72.97
+    },
+    "linear": {
+      "mae": 2.16,
+      "rmse": 3.82,
+      "r2": 0.7307,
+      "pct_within_5min": 92.13
+    },
+    "random_forest": {
+      "mae": 2.05,
+      "rmse": 3.69,
+      "r2": 0.7476,
+      "pct_within_5min": 93.17
+    }
+  },
+  "conformal_calibration": {
+    "target_coverage": 80.0,
+    "q_calib": 0.64,
+    "pre_coverage_test": 66.02,
+    "post_coverage_test": 80.23,
+    "calibration_samples": 1651
+  },
+  "log_transform_decision": {
+    "direct_mae": 2.18,
+    "log_mae": 2.15
+  },
+  "sanity_check": {
+    "n_samples": 500,
+    "queue_monotonicity": {
+      "violations": 18,
+      "rate_pct": 3.6,
+      "max_drop_min": 2.06,
+      "example": "Cơm Gà Phố Cổ - Cơm gà xé Tam Kỳ (Queue 10 -> 15: 15.4p giảm xuống 13.3p)"
+    },
+    "qty_monotonicity": {
+      "violations": 3,
+      "rate_pct": 0.6,
+      "max_drop_min": 0.66
+    }
+  },
+  "dataset_summary": {
+    "total_samples": 10000,
+    "train_samples": 8287,
+    "test_samples": 1639,
+    "train_period": "2026-09-01 đến 2026-10-05",
+    "test_period": "2026-10-06 đến 2026-10-12"
+  }
+}

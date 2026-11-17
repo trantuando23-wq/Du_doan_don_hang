@@ -1,0 +1,16 @@
+﻿group_type,group_name,count,mae,rmse,pct_within_5min
+Quán ăn,Bánh Xèo Sông Hàn,309,3.8,5.3,76.1
+Quán ăn,Bún Chả Cá Biển Xanh,349,1.5,3.08,97.4
+Quán ăn,Cơm Gà Phố Cổ,372,1.56,2.87,97.8
+Quán ăn,Mì Quảng Hạt Sen,353,2.03,3.81,95.5
+Quán ăn,Trà & Cà Phê Muối Bãi Biển,256,1.41,2.93,98.0
+Nhóm món,chien_nuong,309,3.8,5.3,76.1
+Nhóm món,com,372,1.56,2.87,97.8
+Nhóm món,do_uong,256,1.41,2.93,98.0
+Nhóm món,nuoc_dung,702,1.77,3.47,96.4
+Khung giờ,Cao điểm trưa (11-13h),533,2.31,4.01,91.2
+Khung giờ,Cao điểm tối (18-20h),452,2.21,3.66,92.5
+Khung giờ,Thấp điểm,654,1.72,3.44,95.3
+Mức độ đông,Vắng (≤4),354,1.69,3.52,94.9
+Mức độ đông,Vừa (5-11),789,2.02,3.75,93.8
+Mức độ đông,Đông (>11),496,2.34,3.72,90.9

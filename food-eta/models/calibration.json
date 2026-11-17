@@ -1,0 +1,7 @@
+{
+  "target_coverage": 80.0,
+  "q_calib": 0.48,
+  "pre_coverage_test": 69.65,
+  "post_coverage_test": 77.96,
+  "calibration_samples": 2422
+}

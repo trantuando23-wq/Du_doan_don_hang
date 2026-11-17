@@ -1,0 +1,6 @@
+timestamp,store,dish,qty,hour,weekday,queue_estimated,staff,channel,predicted_minutes,actual_minutes,is_demo
+2026-11-17 11:30:00,Mì Quảng Hạt Sen,Mì Quảng gà ta,1,11,Thứ Ba,10,2,tai_quan,14.5,15.0,0
+2026-11-17 12:15:00,Bún Chả Cá Biển Xanh,Bún chả cá đặc biệt,2,12,Thứ Ba,14,2,mang_di,18.0,17.5,0
+2026-11-17 18:45:00,Cơm Gà Phố Cổ,Cơm gà quay da giòn,1,18,Thứ Ba,12,3,giao_app,16.5,19.0,0
+2026-11-17 19:20:00,Bánh Xèo Sông Hàn,Bánh xèo tôm nhảy giòn,3,19,Thứ Ba,18,3,tai_quan,32.0,35.0,0
+2026-11-17 08:30:00,Trà & Cà Phê Muối Bãi Biển,Cà phê muối Đà Nẵng,1,8,Thứ Ba,3,1,mang_di,5.0,4.5,0

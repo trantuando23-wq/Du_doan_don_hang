@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bếp Đà Nẵng · Dự đoán thời gian làm món ăn</title>
+
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:title" content="Bếp Đà Nẵng · Dự đoán thời gian làm món ăn">
+  <meta property="og:description" content="Xem thời gian quán hoàn thành món đặc sản Đà Nẵng theo khu vực, giờ cao điểm và tình trạng bếp.">
+  <meta property="og:image" content="/static/images/store-mi-quang.webp">
+  <meta property="og:type" content="website">
+
+  <!-- Google Fonts: Be Vietnam Pro -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Be Vietnam Pro"', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+          colors: {
+            warm: {
+              50: '#FBF8F4',
+              100: '#F5EFE6',
+              200: '#EBDDCF',
+              300: '#D9C2AD',
+              400: '#BFA086',
+              500: '#9E7E62',
+              600: '#785A42',
+              700: '#543D2C',
+              800: '#38271C',
+              900: '#241911',
+              950: '#140D08',
+            },
+            brand: {
+              50: '#FFF7ED',
+              100: '#FFEDD5',
+              200: '#FED7AA',
+              300: '#FDBA74',
+              400: '#FB923C',
+              500: '#F97316',
+              600: '#EA580C',
+              700: '#C2410C',
+              800: '#9A3412',
+              900: '#7C2D12',
+              950: '#431407',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .progress-ring__circle {
+      transition: stroke-dashoffset 0.85s cubic-bezier(0.4, 0, 0.2, 1);
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .step-reveal {
+      animation: fadeSlideIn 0.26s ease-out both;
+    }
+
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.55; }
+    }
+    .skeleton-pulse { animation: pulse-subtle 1.4s ease-in-out infinite; }
+  </style>
+</head>
+<body class="bg-warm-50 text-stone-800 dark:bg-warm-950 dark:text-warm-100 min-h-full flex flex-col antialiased selection:bg-brand-500 selection:text-white overflow-x-hidden">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-40 bg-warm-50/95 dark:bg-warm-950/95 backdrop-blur-md border-b border-warm-200 dark:border-warm-800 transition-colors">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-10 h-10 shrink-0 rounded-2xl bg-gradient-to-br from-brand-500 to-amber-600 flex items-center justify-center text-white text-xl shadow-md shadow-brand-500/20">
+          🍜
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-base sm:text-lg font-extrabold tracking-tight text-stone-900 dark:text-white leading-tight truncate">
+            Bếp Đà Nẵng <span class="text-brand-600 dark:text-brand-400">· Food ETA</span>
+          </h1>
+          <p class="text-[11px] text-stone-500 dark:text-warm-300 font-medium truncate">
+            Dự đoán thời gian làm món ăn theo khu vực &amp; quán
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 shrink-0">
+        <div class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-warm-900 border border-warm-200 dark:border-warm-800 text-xs font-medium text-stone-700 dark:text-warm-200 shadow-xs">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span id="live-clock">Đang tải giờ...</span>
+        </div>
+
+        <button id="theme-toggle" type="button" aria-label="Đổi giao diện Sáng / Tối" class="p-2 rounded-xl bg-white dark:bg-warm-900 border border-warm-200 dark:border-warm-800 text-stone-700 dark:text-warm-200 hover:bg-warm-100 dark:hover:bg-warm-800 transition cursor-pointer">
+          <span id="theme-icon-sun" class="hidden dark:inline text-base">☀️</span>
+          <span id="theme-icon-moon" class="inline dark:hidden text-base">🌙</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Banner mỏng minh họa dữ liệu mô phỏng -->
+  <div class="bg-amber-50/90 dark:bg-amber-950/50 border-b border-amber-200/80 dark:border-amber-900/60 px-4 py-1.5 text-center">
+    <p class="text-[11px] font-medium text-amber-900 dark:text-amber-200 max-w-4xl mx-auto">
+      ⚡ Dữ liệu mô phỏng, chỉ mang tính minh họa · Các quán ăn trong hệ thống là quán hư cấu tại Đà Nẵng
+    </p>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-7">
+
+    <!-- BƯỚC 1: CHỌN KHU VỰC -->
+    <section class="space-y-3" aria-labelledby="step1-heading">
+      <div class="flex items-center justify-between gap-2">
+        <h2 id="step1-heading" class="text-sm font-bold uppercase tracking-wider text-stone-700 dark:text-warm-200 flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-brand-600 text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
+          <span>Chọn khu vực Đà Nẵng</span>
+        </h2>
+        <span id="selected-region-label" class="text-xs font-semibold text-stone-500 dark:text-warm-400">
+          Chưa chọn khu vực
+        </span>
+      </div>
+
+      <div id="regions-grid" class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-stretch">
+        <div class="h-24 rounded-2xl bg-warm-200/70 dark:bg-warm-800/70 skeleton-pulse"></div>
+        <div class="h-24 rounded-2xl bg-warm-200/70 dark:bg-warm-800/70 skeleton-pulse"></div>
+        <div class="h-24 rounded-2xl bg-warm-200/70 dark:bg-warm-800/70 skeleton-pulse"></div>
+      </div>
+    </section>
+
+    <!-- BƯỚC 2: CHỌN QUÁN TRONG KHU VỰC -->
+    <section class="space-y-3" aria-labelledby="step2-heading">
+      <div class="flex items-center justify-between gap-2">
+        <h2 id="step2-heading" class="text-sm font-bold uppercase tracking-wider text-stone-700 dark:text-warm-200 flex items-center gap-2">
+          <span id="step2-badge" class="w-6 h-6 rounded-full bg-warm-300 dark:bg-warm-700 text-stone-700 dark:text-warm-200 text-xs font-bold flex items-center justify-center shrink-0 transition-colors">2</span>
+          <span>Chọn quán ăn</span>
+        </h2>
+        <span id="selected-store-label" class="text-xs font-semibold text-stone-500 dark:text-warm-400 truncate max-w-[55%]">
+          Chưa chọn quán
+        </span>
+      </div>
+
+      <!-- Gợi ý nhẹ khi chưa chọn khu vực -->
+      <div id="stores-hint" class="rounded-2xl border border-dashed border-warm-300 dark:border-warm-700 bg-white/60 dark:bg-warm-900/40 px-4 py-6 text-center">
+        <p class="text-xs sm:text-sm font-medium text-stone-500 dark:text-warm-400">
+          👆 Hãy chọn khu vực ở <strong>Bước 1</strong> trước để xem các quán ăn tại đó.
+        </p>
+      </div>
+
+      <div id="stores-grid" class="hidden grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch"></div>
+    </section>
+
+    <!-- BƯỚC 3: CHỌN MÓN ĂN TRONG THỰC ĐƠN -->
+    <section class="space-y-3" aria-labelledby="step3-heading">
+      <div class="flex items-center justify-between gap-2">
+        <h2 id="step3-heading" class="text-sm font-bold uppercase tracking-wider text-stone-700 dark:text-warm-200 flex items-center gap-2">
+          <span id="step3-badge" class="w-6 h-6 rounded-full bg-warm-300 dark:bg-warm-700 text-stone-700 dark:text-warm-200 text-xs font-bold flex items-center justify-center shrink-0 transition-colors">3</span>
+          <span>Chọn món ăn trong thực đơn</span>
+        </h2>
+        <span id="selected-dish-label" class="text-xs font-semibold text-stone-500 dark:text-warm-400 truncate max-w-[55%]">
+          Chưa chọn món
+        </span>
+      </div>
+
+      <!-- Gợi ý nhẹ khi chưa chọn quán -->
+      <div id="dishes-hint" class="rounded-2xl border border-dashed border-warm-300 dark:border-warm-700 bg-white/60 dark:bg-warm-900/40 px-4 py-6 text-center">
+        <p class="text-xs sm:text-sm font-medium text-stone-500 dark:text-warm-400">
+          👆 Hãy chọn một quán ăn ở <strong>Bước 2</strong> để xem thực đơn món.
+        </p>
+      </div>
+
+      <div id="dishes-grid" class="hidden grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 items-stretch"></div>
+    </section>
+
+    <!-- BƯỚC 4: TÙY CHỌN ĐẶT MÓN (HÌNH THỨC NHẬN · SỐ LƯỢNG · THỜI ĐIỂM) -->
+    <section class="space-y-3" aria-labelledby="step4-heading">
+      <div class="flex items-center justify-between gap-2">
+        <h2 id="step4-heading" class="text-sm font-bold uppercase tracking-wider text-stone-700 dark:text-warm-200 flex items-center gap-2">
+          <span id="step4-badge" class="w-6 h-6 rounded-full bg-warm-300 dark:bg-warm-700 text-stone-700 dark:text-warm-200 text-xs font-bold flex items-center justify-center shrink-0 transition-colors">4</span>
+          <span>Tùy chọn đặt món &amp; Dự đoán</span>
+        </h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch">
+
+        <!-- Hình thức nhận món (Channel - Để trống lúc đầu) -->
+        <div class="md:col-span-5 bg-white dark:bg-warm-900 rounded-2xl p-4 border border-warm-200 dark:border-warm-800 shadow-sm flex flex-col justify-between space-y-2.5">
+          <div class="flex items-center justify-between gap-2">
+            <label class="text-xs font-bold uppercase tracking-wider text-stone-700 dark:text-warm-200">
+              Hình thức nhận món <span class="text-rose-500">*</span>
+            </label>
+            <span id="channel-badge-info" class="text-[11px] font-semibold text-stone-500 dark:text-warm-400">Chưa chọn</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" id="channel-btn-tai_quan" onclick="setChannel('tai_quan')"
+              class="flex flex-col items-center justify-center p-2.5 rounded-xl border border-warm-200 dark:border-warm-700 bg-warm-50/70 dark:bg-warm-800/80 text-stone-700 dark:text-warm-200 font-medium text-xs hover:border-brand-400 dark:hover:border-brand-500 transition cursor-pointer">
+              <span class="text-xl mb-1" aria-hidden="true">🍽️</span>
+              <span class="text-[11px] leading-tight text-center">Ăn tại quán</span>
+            </button>
+            <button type="button" id="channel-btn-mang_di" onclick="setChannel('mang_di')"
+              class="flex flex-col items-center justify-center p-2.5 rounded-xl border border-warm-200 dark:border-warm-700 bg-warm-50/70 dark:bg-warm-800/80 text-stone-700 dark:text-warm-200 font-medium text-xs hover:border-brand-400 dark:hover:border-brand-500 transition cursor-pointer">
+              <span class="text-xl mb-1" aria-hidden="true">🥡</span>
+              <span class="text-[11px] leading-tight text-center">Mang đi</span>
+            </button>
+            <button type="button" id="channel-btn-giao_app" onclick="setChannel('giao_app')"
+              class="flex flex-col items-center justify-center p-2.5 rounded-xl border border-warm-200 dark:border-warm-700 bg-warm-50/70 dark:bg-warm-800/80 text-stone-700 dark:text-warm-200 font-medium text-xs hover:border-brand-400 dark:hover:border-brand-500 transition cursor-pointer">
+              <span class="text-xl mb-1" aria-hidden="true">🛵</span>
+              <span class="text-[11px] leading-tight text-center">Giao qua app</span>
+            </button>
+          </div>
+          <p id="channel-desc" class="text-[11px] text-center text-stone-500 dark:text-warm-400">
+            Hãy chọn 1 trong 3 hình thức nhận món ở trên
+          </p>
+        </div>
+
+        <!-- Số lượng phần ăn (Mặc định 1) -->
+        <div class="md:col-span-3 bg-white dark:bg-warm-900 rounded-2xl p-4 border border-warm-200 dark:border-warm-800 shadow-sm flex flex-col justify-between">
+          <label class="text-xs font-bold uppercase tracking-wider text-stone-700 dark:text-warm-200">
+            Số lượng phần ăn
+          </label>
+          <div class="flex items-center justify-center gap-3 py-2">
+            <button type="button" onclick="changeQty(-1)" aria-label="Giảm số lượng" class="w-10 h-10 rounded-xl bg-warm-100 dark:bg-warm-800 hover:bg-brand-100 dark:hover:bg-brand-900/60 text-stone-800 dark:text-warm-100 text-xl font-bold flex items-center justify-center transition border border-warm-200 dark:border-warm-700 active:scale-95 cursor-pointer">
+              −
+            </button>
+            <span id="qty-display" class="text-2xl font-extrabold text-stone-900 dark:text-white w-10 text-center">1</span>
+            <button type="button" onclick="changeQty(1)" aria-label="Tăng số lượng" class="w-10 h-10 rounded-xl bg-warm-100 dark:bg-warm-800 hover:bg-brand-100 dark:hover:bg-brand-900/60 text-stone-800 dark:text-warm-100 text-xl font-bold flex items-center justify-center transition border border-warm-200 dark:border-warm-700 active:scale-95 cursor-pointer">
+              +
+            </button>
+          </div>
+          <p class="text-[11px] text-center text-stone-500 dark:text-warm-400">Mặc định 1 phần</p>
+        </div>
+
+        <!-- Thời điểm đặt món (Mặc định Bây giờ) -->
+        <div class="md:col-span-4 bg-white dark:bg-warm-900 rounded-2xl p-4 border border-warm-200 dark:border-warm-800 shadow-sm flex flex-col justify-between space-y-2.5">
+          <div class="flex items-center justify-between gap-2 flex-wrap">
+            <label class="text-xs font-bold uppercase tracking-wider text-stone-700 dark:text-warm-200 whitespace-nowrap">
+              Thời điểm đặt
+            </label>
+            <div class="flex p-0.5 bg-warm-100 dark:bg-warm-800 rounded-xl text-[11px] font-semibold shrink-0">
+              <button id="mode-btn-now" type="button" onclick="setOrderMode('now')" class="px-2.5 py-1 rounded-lg bg-white dark:bg-warm-700 text-brand-700 dark:text-brand-300 shadow-xs transition cursor-pointer whitespace-nowrap">
+                ⚡ Bây giờ
+              </button>
+              <button id="mode-btn-sched" type="button" onclick="setOrderMode('scheduled')" class="px-2.5 py-1 rounded-lg text-stone-600 dark:text-warm-300 hover:text-stone-900 dark:hover:text-white transition cursor-pointer whitespace-nowrap">
+                📅 Hẹn giờ
+              </button>
+            </div>
+          </div>
+
+          <!-- Bây giờ -->
+          <div id="mode-now-panel" class="space-y-1.5">
+            <p class="text-xs font-medium text-stone-600 dark:text-warm-300 flex items-center gap-1.5">
+              <span>🕒</span>
+              <span>Giờ Việt Nam: <strong class="text-stone-900 dark:text-white" id="now-time-text">--:--</strong></span>
+            </p>
+            <p class="text-[11px] text-stone-500 dark:text-warm-400">Tự động lấy thời điểm hiện tại</p>
+          </div>
+
+          <!-- Hẹn giờ -->
+          <div id="mode-scheduled-panel" class="hidden grid-cols-2 gap-2">
+            <div>
+              <label for="sched-hour" class="block text-[10px] font-semibold text-stone-500 dark:text-warm-300 mb-1">Giờ hẹn</label>
+              <select id="sched-hour" onchange="onScheduledTimeChange()" class="w-full text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-warm-50 dark:bg-warm-800 border border-warm-200 dark:border-warm-700 text-stone-800 dark:text-warm-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <option value="7">07:00 (Sáng sớm)</option>
+                <option value="8">08:00 (Ăn sáng)</option>
+                <option value="9">09:00 (Thấp điểm)</option>
+                <option value="10">10:00 (Thấp điểm)</option>
+                <option value="11">11:00 (Cao điểm trưa)</option>
+                <option value="12" selected>12:00 (Đỉnh trưa)</option>
+                <option value="13">13:00 (Cuối trưa)</option>
+                <option value="14">14:00 (Chiều vắng)</option>
+                <option value="15">15:00 (Chiều vắng)</option>
+                <option value="16">16:00 (Xế chiều)</option>
+                <option value="17">17:00 (Đầu tối)</option>
+                <option value="18">18:00 (Cao điểm tối)</option>
+                <option value="19">19:00 (Đỉnh tối)</option>
+                <option value="20">20:00 (Tối muộn)</option>
+                <option value="21">21:00 (Vãn khách)</option>
+                <option value="22">22:00 (Gần đóng cửa)</option>
+              </select>
+            </div>
+            <div>
+              <label for="sched-weekday" class="block text-[10px] font-semibold text-stone-500 dark:text-warm-300 mb-1">Ngày</label>
+              <select id="sched-weekday" onchange="onScheduledTimeChange()" class="w-full text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-warm-50 dark:bg-warm-800 border border-warm-200 dark:border-warm-700 text-stone-800 dark:text-warm-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <option value="Thứ Hai">Thứ Hai</option>
+                <option value="Thứ Ba">Thứ Ba</option>
+                <option value="Thứ Tư">Thứ Tư</option>
+                <option value="Thứ Năm">Thứ Năm</option>
+                <option value="Thứ Sáu">Thứ Sáu</option>
+                <option value="Thứ Bảy">Thứ Bảy</option>
+                <option value="Chủ Nhật">Chủ Nhật</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dòng trạng thái quán (CHỈ HIỆN SAU KHI ĐÃ CHỌN QUÁN) + Nút Dự đoán -->
+      <div class="bg-white dark:bg-warm-900 rounded-2xl p-4 sm:p-5 border border-warm-200 dark:border-warm-800 shadow-sm space-y-3">
+
+        <!-- Trạng thái quán chỉ đọc (ẩn trước khi chọn quán) -->
+        <div id="store-status-wrapper" class="hidden">
+          <div id="queue-status-box" class="inline-flex flex-wrap items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/80 text-xs">
+            <span id="queue-status-dot" class="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
+            <span id="queue-status-text" class="font-semibold text-amber-900 dark:text-amber-200"></span>
+            <span class="text-[11px] text-amber-700 dark:text-amber-300/90">(ước lượng mô phỏng)</span>
+          </div>
+        </div>
+
+        <!-- Các nút hành động -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <button id="btn-predict" type="button" onclick="triggerPredict()" disabled
+            class="flex-1 py-3.5 px-6 rounded-2xl font-bold text-sm transition flex items-center justify-center gap-2 bg-stone-200 dark:bg-warm-800 text-stone-500 dark:text-warm-500 cursor-not-allowed">
+            <span>🚀 Dự đoán thời gian hoàn thành</span>
+          </button>
+
+          <button id="btn-add-cart" type="button" onclick="addToCart()" disabled
+            class="py-3.5 px-4 rounded-2xl bg-warm-100 dark:bg-warm-800 text-stone-400 dark:text-warm-500 font-semibold text-xs transition border border-warm-200 dark:border-warm-700 flex items-center justify-center gap-1.5 cursor-not-allowed">
+            <span>🛒 Thêm vào đơn nhiều món</span>
+            <span id="cart-badge" class="hidden px-1.5 py-0.5 text-[10px] rounded-full bg-brand-600 text-white font-bold">0</span>
+          </button>
+        </div>
+
+        <!-- Dòng thông báo còn thiếu gì để bấm Dự đoán -->
+        <p id="predict-missing-hint" class="text-xs font-medium text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+          <span>ℹ️</span>
+          <span id="predict-missing-text">Bạn còn chưa chọn khu vực, quán, món ăn và hình thức nhận món.</span>
+        </p>
+      </div>
+    </section>
+
+    <!-- GIỎ HÀNG NHIỀU MÓN -->
+    <section id="cart-section" class="hidden bg-white dark:bg-warm-900 rounded-2xl p-4 border border-brand-200 dark:border-warm-800 shadow-sm space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-brand-700 dark:text-brand-300 flex items-center gap-1.5">
+          <span>🛒</span>
+          <span>Đơn hàng nhiều món cùng quán</span>
+        </h3>
+        <button type="button" onclick="clearCart()" class="text-xs text-rose-600 dark:text-rose-400 hover:underline font-medium cursor-pointer">Xóa giỏ</button>
+      </div>
+      <div id="cart-items-list" class="space-y-2"></div>
+    </section>
+
+    <!-- KHU VỰC KẾT QUẢ DỰ ĐOÁN -->
+    <section id="result-section" class="space-y-4">
+      <!-- Trạng thái chờ -->
+      <div id="result-empty" class="bg-white/70 dark:bg-warm-900/50 rounded-3xl p-8 border border-dashed border-warm-300 dark:border-warm-700 text-center space-y-2">
+        <div class="text-3xl">⏱️</div>
+        <h3 class="text-sm font-bold text-stone-700 dark:text-warm-200">
+          Hoàn tất 4 bước trên rồi bấm "Dự đoán thời gian hoàn thành"
+        </h3>
+        <p class="text-xs text-stone-500 dark:text-warm-400 max-w-md mx-auto">
+          Bạn cũng có thể thử cùng một món ở 2 quán thuộc khu vực khác nhau để so sánh quán nào phục vụ nhanh hơn.
+        </p>
+      </div>
+
+      <!-- Loading -->
+      <div id="result-loading" class="hidden bg-white dark:bg-warm-900 rounded-3xl p-8 border border-warm-200 dark:border-warm-800 text-center space-y-4">
+        <div class="w-16 h-16 rounded-full border-4 border-brand-200 border-t-brand-600 animate-spin mx-auto"></div>
+        <p class="text-xs font-semibold text-stone-600 dark:text-warm-300">Đang tính toán thời gian chuẩn bị món...</p>
+      </div>
+
+      <!-- Thẻ kết quả hoàn chỉnh -->
+      <div id="result-card" class="hidden step-reveal bg-gradient-to-br from-white via-warm-50 to-orange-50/40 dark:from-warm-900 dark:via-warm-900 dark:to-warm-950 rounded-3xl p-5 sm:p-8 border border-brand-200 dark:border-warm-800 shadow-lg space-y-6">
+
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-warm-200/70 dark:border-warm-800 pb-4">
+          <div class="space-y-1">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span id="res-badge-mode" class="px-2.5 py-0.5 rounded-full bg-brand-100 dark:bg-brand-900/80 text-brand-800 dark:text-brand-200 text-xs font-semibold">
+                Đơn đặt ngay
+              </span>
+              <span id="res-badge-channel" class="px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 text-xs font-semibold">
+                Ăn tại quán
+              </span>
+              <span id="res-badge-staff" class="px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-900 dark:text-blue-200 text-xs font-semibold">
+                👨‍🍳 Bếp 2 người
+              </span>
+            </div>
+            <h3 id="res-title" class="text-lg font-bold text-stone-900 dark:text-white">
+              Mì Quảng gà ta (x1)
+            </h3>
+            <p id="res-store-name" class="text-xs text-stone-600 dark:text-warm-300">
+              Mì Quảng Hạt Sen · Quận Hải Châu, Đà Nẵng
+            </p>
+          </div>
+
+          <div class="sm:text-right">
+            <span id="res-queue-badge" class="px-3 py-1 rounded-full text-xs font-bold inline-block">
+              Vừa phải (~6 đơn chờ)
+            </span>
+            <p id="res-queue-note" class="text-[11px] text-stone-500 dark:text-warm-400 mt-1">ước lượng thời gian thực</p>
+          </div>
+        </div>
+
+        <!-- Đồng hồ vòng xoay -->
+        <div class="flex flex-col items-center justify-center py-2 space-y-3">
+          <div class="relative w-44 h-44 flex items-center justify-center">
+            <svg class="w-full h-full transform -rotate-90" viewBox="0 0 160 160">
+              <circle cx="80" cy="80" r="70" stroke="currentColor" stroke-width="12" fill="transparent" class="text-warm-200 dark:text-warm-800" />
+              <circle id="progress-circle" cx="80" cy="80" r="70" stroke="currentColor" stroke-width="12" fill="transparent" stroke-linecap="round" stroke-dasharray="440" stroke-dashoffset="440" class="progress-ring__circle text-brand-500 dark:text-brand-400" />
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <span class="text-[11px] uppercase font-bold tracking-wider text-stone-500 dark:text-warm-300">Thời gian dự kiến</span>
+              <div class="flex items-baseline">
+                <span id="res-eta-number" class="text-5xl font-black text-brand-600 dark:text-brand-400 tracking-tight">0</span>
+                <span class="text-base font-bold text-stone-700 dark:text-warm-200 ml-1">phút</span>
+              </div>
+              <span class="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">Khoảng tin cậy 80%</span>
+            </div>
+          </div>
+
+          <div class="text-center space-y-1">
+            <p class="text-sm font-semibold text-stone-800 dark:text-warm-100">
+              Khoảng dự kiến: <span id="res-interval" class="font-bold text-brand-700 dark:text-brand-300">12 – 18 phút</span>
+              <span class="text-xs text-stone-500 dark:text-warm-300 font-normal">(80% số đơn hàng)</span>
+            </p>
+            <p class="text-xs font-medium text-emerald-700 dark:text-emerald-400 flex items-center justify-center gap-1.5">
+              <span>🎯</span>
+              <span>Dự kiến xong lúc: <strong id="res-ready-time" class="text-sm font-bold underline decoration-emerald-500 underline-offset-4">12:35</strong> (Giờ Việt Nam)</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Giải thích lý do -->
+        <div class="bg-warm-100/80 dark:bg-warm-800/70 rounded-2xl p-4 border border-warm-200 dark:border-warm-700 space-y-2">
+          <div class="flex items-center gap-2">
+            <span class="text-base">💡</span>
+            <h4 class="text-xs font-bold uppercase tracking-wider text-stone-800 dark:text-warm-100">
+              Tại sao lại có thời gian này?
+            </h4>
+          </div>
+          <ul id="reasons-list" class="space-y-1 text-xs text-stone-700 dark:text-warm-200 pl-5 list-disc"></ul>
+        </div>
+
+        <!-- Gợi ý giờ đặt nhanh nhất -->
+        <div class="bg-white dark:bg-warm-950/60 rounded-2xl p-4 sm:p-5 border border-warm-200 dark:border-warm-800 space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-base">⚡</span>
+              <h4 class="text-xs font-bold uppercase tracking-wider text-stone-800 dark:text-warm-100">
+                Gợi ý thời điểm đặt món nhanh hơn
+              </h4>
+            </div>
+            <span id="best-time-pill" class="self-start sm:self-auto px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-[11px] font-bold">
+              Thời điểm thuận lợi
+            </span>
+          </div>
+          <p id="best-time-text" class="text-xs text-stone-600 dark:text-warm-300"></p>
+          <div class="h-44 w-full">
+            <canvas id="hourlyEtaChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Phản hồi thực tế -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-warm-200/70 dark:border-warm-800">
+          <p class="text-xs text-stone-600 dark:text-warm-300 text-center sm:text-left">
+            Bạn đã nhận món chưa? Chia sẻ thời gian đợi thực tế để giúp ước lượng chính xác hơn!
+          </p>
+          <button type="button" onclick="openFeedbackModal()" class="shrink-0 px-4 py-2 rounded-xl bg-warm-100 dark:bg-warm-800 hover:bg-brand-100 dark:hover:bg-brand-900/60 text-stone-800 dark:text-warm-100 font-semibold text-xs border border-warm-200 dark:border-warm-700 transition cursor-pointer">
+            ⏱️ Báo thời gian thực tế
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL PHẢN HỒI THỜI GIAN THỰC TẾ -->
+  <div id="feedback-modal" class="fixed inset-0 z-50 bg-black/55 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white dark:bg-warm-900 rounded-3xl max-w-sm w-full p-5 shadow-2xl border border-warm-200 dark:border-warm-800 space-y-4">
+      <div class="flex items-center justify-between border-b border-warm-100 dark:border-warm-800 pb-2">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-stone-800 dark:text-warm-100">⏱️ Báo thời gian thực tế</h4>
+        <button type="button" onclick="closeFeedbackModal()" class="text-stone-400 hover:text-stone-700 dark:hover:text-white text-sm cursor-pointer">✕</button>
+      </div>
+      <p class="text-xs text-stone-600 dark:text-warm-300">
+        Bạn thực sự đã đợi bao nhiêu phút để nhận món này?
+      </p>
+      <div class="flex items-center gap-2">
+        <input id="feedback-actual-mins" type="number" min="1" max="180" step="0.5" placeholder="Ví dụ: 14" class="flex-1 px-3 py-2 rounded-xl bg-warm-50 dark:bg-warm-800 border border-warm-200 dark:border-warm-700 text-sm font-semibold text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+        <span class="text-xs font-semibold text-stone-500 dark:text-warm-300">phút</span>
+      </div>
+      <div class="flex gap-2">
+        <button type="button" onclick="closeFeedbackModal()" class="flex-1 py-2 rounded-xl bg-warm-100 dark:bg-warm-800 text-xs font-semibold text-stone-700 dark:text-warm-200 cursor-pointer">Hủy</button>
+        <button type="button" onclick="submitFeedback()" class="flex-1 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold cursor-pointer">Gửi phản hồi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL CHẾ ĐỘ DEMO KÍN ĐÁO Ở CHÂN TRANG -->
+  <div id="demo-modal" class="fixed inset-0 z-50 bg-black/55 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white dark:bg-warm-900 rounded-3xl max-w-sm w-full p-5 shadow-2xl border border-warm-200 dark:border-warm-800 space-y-4">
+      <div class="flex items-center justify-between border-b border-warm-100 dark:border-warm-800 pb-2">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-stone-800 dark:text-warm-100 flex items-center gap-1.5">
+          <span>🧪</span>
+          <span>Chế độ Demo (Ghi đè đơn &amp; bếp)</span>
+        </h4>
+        <button type="button" onclick="closeDemoModal()" class="text-stone-400 hover:text-stone-700 dark:hover:text-white text-sm cursor-pointer">✕</button>
+      </div>
+
+      <p class="text-xs text-stone-600 dark:text-warm-300">
+        Bật công tắc này để tự điều chỉnh số đơn chờ và số người làm bếp khi cần kiểm thử:
+      </p>
+
+      <div class="flex items-center justify-between py-1">
+        <span class="text-xs font-semibold text-stone-800 dark:text-warm-100">Bật ghi đè thủ công</span>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" id="demo-mode-toggle" onchange="toggleDemoMode()" class="sr-only peer">
+          <div class="w-10 h-5 bg-warm-300 rounded-full peer dark:bg-warm-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-600"></div>
+        </label>
+      </div>
+
+      <div id="demo-override-controls" class="hidden space-y-3 pt-2 border-t border-warm-100 dark:border-warm-800">
+        <div class="space-y-1">
+          <div class="flex items-center justify-between text-xs font-semibold">
+            <span>Đơn chờ: <strong id="demo-queue-val" class="text-brand-600 dark:text-brand-400 text-sm">15</strong> đơn</span>
+            <span id="demo-queue-badge" class="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-[10px]">Khá đông</span>
+          </div>
+          <input type="range" id="demo-queue-slider" min="0" max="35" value="15" oninput="updateDemoQueue(this.value)" class="w-full accent-brand-500 cursor-pointer">
+        </div>
+
+        <div class="space-y-1 pt-2 border-t border-warm-100 dark:border-warm-800">
+          <div class="flex items-center justify-between text-xs font-semibold">
+            <span>Bếp đang làm: <strong id="demo-staff-val" class="text-brand-600 dark:text-brand-400 text-sm">2</strong> người</span>
+            <span id="demo-staff-badge" class="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 text-[10px]">2 người (Tiêu chuẩn)</span>
+          </div>
+          <input type="range" id="demo-staff-slider" min="1" max="4" value="2" oninput="updateDemoStaff(this.value)" class="w-full accent-brand-500 cursor-pointer">
+        </div>
+      </div>
+
+      <button type="button" onclick="closeDemoModal()" class="w-full py-2 rounded-xl bg-warm-100 dark:bg-warm-800 text-xs font-semibold text-stone-700 dark:text-warm-200 hover:bg-warm-200 dark:hover:bg-warm-700 transition cursor-pointer">
+        Đóng
+      </button>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="mt-auto border-t border-warm-200 dark:border-warm-800 bg-white/70 dark:bg-warm-950/80 py-5 text-center text-xs text-stone-600 dark:text-warm-400">
+    <div class="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <p>© 2026 <strong>Bếp Đà Nẵng · Food ETA</strong> · Dự đoán thời gian hoàn thành món ăn</p>
+      <div class="flex items-center gap-3 flex-wrap justify-center">
+        <button type="button" onclick="openDemoModal()" class="hover:text-brand-600 dark:hover:text-brand-400 transition underline cursor-pointer">
+          🧪 Chế độ Demo
+        </button>
+        <span class="text-stone-300 dark:text-warm-700">|</span>
+        <a href="/health" target="_blank" class="hover:text-brand-600 dark:hover:text-brand-400 transition underline">Trạng thái hệ thống</a>
+        <span class="text-stone-300 dark:text-warm-700">|</span>
+        <span>Ảnh: Wikimedia Commons &amp; Unsplash</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // Trạng thái ban đầu ĐỂ TRỐNG hoàn toàn (không nhớ bằng localStorage)
+    let catalogData = null;
+    let selectedRegionId = null;
+    let selectedStoreName = null;
+    let selectedDishName = null;
+    let selectedChannel = null; // Trống lúc đầu
+    let currentQty = 1;         // Mặc định hợp lý
+    let orderMode = 'now';      // Mặc định hợp lý
+    let demoOverrideQueue = null;
+    let demoOverrideStaff = null;
+    let cartItems = [];
+    let lastPredictionData = null;
+    let hourlyChartInstance = null;
+
+    // Dark / Light Mode (chỉ lưu giao diện Sáng/Tối, không lưu lựa chọn quán/món)
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    function initTheme() {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('theme') === 'dark') {
+        document.documentElement.classList.add('dark');
+        return;
+      } else if (urlParams.get('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+        return;
+      }
+      if (localStorage.getItem('theme') === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+    initTheme();
+
+    themeToggleBtn.addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+      if (hourlyChartInstance) updateHourlyChartTheme();
+    });
+
+    // Helper tìm object đang chọn
+    function getSelectedRegion() {
+      if (!catalogData || !selectedRegionId) return null;
+      return catalogData.regions.find(r => r.id === selectedRegionId) || null;
+    }
+
+    function getSelectedStore() {
+      const reg = getSelectedRegion();
+      if (!reg || !selectedStoreName) return null;
+      return reg.stores.find(s => s.store === selectedStoreName) || null;
+    }
+
+    function getSelectedDish() {
+      const st = getSelectedStore();
+      if (!st || !selectedDishName) return null;
+      return st.dishes.find(d => d.name === selectedDishName) || null;
+    }
+
+    // Xóa kết quả dự đoán cũ mỗi khi người dùng đổi bất kỳ lựa chọn nào
+    function clearPredictionResult() {
+      lastPredictionData = null;
+      document.getElementById('result-card').classList.add('hidden');
+      document.getElementById('result-loading').classList.add('hidden');
+      document.getElementById('result-empty').classList.remove('hidden');
+    }
+
+    // Cập nhật trạng thái nút Dự đoán & dòng gợi ý còn thiếu gì
+    function updateActionState() {
+      const btnPredict = document.getElementById('btn-predict');
+      const btnAddCart = document.getElementById('btn-add-cart');
+      const hintWrap = document.getElementById('predict-missing-hint');
+      const hintText = document.getElementById('predict-missing-text');
+
+      const missing = [];
+      if (!selectedRegionId) missing.push('khu vực');
+      if (!selectedStoreName) missing.push('quán');
+      if (!selectedDishName) missing.push('món ăn');
+      if (!selectedChannel) missing.push('hình thức nhận món');
+
+      // Cập nhật màu số bước
+      const setStepBadge = (id, active) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.className = active
+          ? 'w-6 h-6 rounded-full bg-brand-600 text-white text-xs font-bold flex items-center justify-center shrink-0 transition-colors'
+          : 'w-6 h-6 rounded-full bg-warm-300 dark:bg-warm-700 text-stone-700 dark:text-warm-200 text-xs font-bold flex items-center justify-center shrink-0 transition-colors';
+      };
+      setStepBadge('step2-badge', Boolean(selectedRegionId));
+      setStepBadge('step3-badge', Boolean(selectedStoreName));
+      setStepBadge('step4-badge', Boolean(selectedDishName));
+
+      // Nút thêm vào giỏ chỉ mở khi đã chọn quán + món
+      if (selectedStoreName && selectedDishName) {
+        btnAddCart.disabled = false;
+        btnAddCart.className = 'py-3.5 px-4 rounded-2xl bg-warm-100 dark:bg-warm-800 hover:bg-warm-200 dark:hover:bg-warm-700 text-stone-800 dark:text-warm-100 font-semibold text-xs transition border border-warm-200 dark:border-warm-700 flex items-center justify-center gap-1.5 cursor-pointer';
+      } else {
+        btnAddCart.disabled = true;
+        btnAddCart.className = 'py-3.5 px-4 rounded-2xl bg-warm-100/70 dark:bg-warm-800/60 text-stone-400 dark:text-warm-500 font-semibold text-xs transition border border-warm-200 dark:border-warm-800 flex items-center justify-center gap-1.5 cursor-not-allowed';
+      }
+
+      // Nút dự đoán chỉ sáng khi đã chọn đủ quán, món, hình thức nhận món
+      if (missing.length === 0) {
+        btnPredict.disabled = false;
+        btnPredict.className = 'flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-brand-600 via-brand-500 to-amber-600 hover:from-brand-700 hover:to-amber-700 text-white font-bold text-sm shadow-md shadow-brand-500/25 transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer';
+        hintWrap.className = 'text-xs font-medium text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5';
+        hintText.innerText = 'Đã chọn đủ thông tin — bấm nút trên để xem thời gian dự kiến.';
+      } else {
+        btnPredict.disabled = true;
+        btnPredict.className = 'flex-1 py-3.5 px-6 rounded-2xl font-bold text-sm transition flex items-center justify-center gap-2 bg-stone-200 dark:bg-warm-800 text-stone-500 dark:text-warm-500 cursor-not-allowed';
+        hintWrap.className = 'text-xs font-medium text-amber-800 dark:text-amber-300 flex items-center gap-1.5';
+        let joined = missing.length === 1
+          ? missing[0]
+          : missing.slice(0, -1).join(', ') + ' và ' + missing[missing.length - 1];
+        hintText.innerText = `Bạn còn chưa chọn ${joined}.`;
+      }
+    }
+
+    // Nạp danh mục phân cấp từ API
+    async function fetchCatalog() {
+      try {
+        const res = await fetch('/api/catalog');
+        if (!res.ok) throw new Error('Không thể nạp danh mục khu vực và quán ăn.');
+        catalogData = await res.json();
+
+        if (catalogData.current_time) {
+          const t = catalogData.current_time;
+          const timeStr = `${String(t.hour).padStart(2, '0')}:${String(t.minute).padStart(2, '0')}, ${t.weekday}`;
+          document.getElementById('live-clock').innerText = `${timeStr} (VN)`;
+          document.getElementById('now-time-text').innerText = timeStr;
+          const schedWd = document.getElementById('sched-weekday');
+          if (schedWd) schedWd.value = t.weekday;
+        }
+
+        renderRegions();
+        renderStores();
+        renderDishes();
+        updateActionState();
+      } catch (err) {
+        console.error('Lỗi catalog:', err);
+      }
+    }
+
+    // BƯỚC 1: Render 3 thẻ khu vực (cùng chiều cao, không chọn sẵn)
+    function renderRegions() {
+      const container = document.getElementById('regions-grid');
+      const label = document.getElementById('selected-region-label');
+      container.innerHTML = '';
+
+      const activeReg = getSelectedRegion();
+      if (activeReg) {
+        label.innerText = `${activeReg.emoji} ${activeReg.name}`;
+        label.className = 'text-xs font-bold text-brand-700 dark:text-brand-400';
+      } else {
+        label.innerText = 'Chưa chọn khu vực';
+        label.className = 'text-xs font-semibold text-stone-500 dark:text-warm-400';
+      }
+
+      catalogData.regions.forEach(reg => {
+        const isSelected = reg.id === selectedRegionId;
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+        card.className = `h-full w-full rounded-2xl p-4 text-left flex flex-col justify-between transition-all border-2 cursor-pointer ${
+          isSelected
+            ? 'border-brand-600 dark:border-brand-400 bg-brand-50 dark:bg-brand-950/90 ring-2 ring-brand-500/25 dark:ring-brand-400/35 shadow-md'
+            : 'border-warm-200 dark:border-warm-800 bg-white dark:bg-warm-900 hover:border-brand-400 dark:hover:border-brand-600 hover:shadow-xs'
+        }`;
+        card.onclick = () => selectRegion(reg.id);
+
+        card.innerHTML = `
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xl" aria-hidden="true">${reg.emoji}</span>
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                isSelected
+                  ? 'bg-brand-600 text-white'
+                  : 'bg-warm-100 dark:bg-warm-800 text-stone-700 dark:text-warm-200'
+              }">${reg.store_count} quán</span>
+            </div>
+            <h3 class="text-sm font-bold text-stone-900 dark:text-white leading-snug" title="${reg.name}">
+              ${reg.name}
+            </h3>
+            <p class="text-xs text-stone-600 dark:text-warm-200 line-clamp-2 leading-relaxed" title="${reg.tagline}">
+              ${reg.tagline}
+            </p>
+          </div>
+          <div class="mt-3 pt-2 border-t border-warm-200/70 dark:border-warm-800 flex items-center justify-between text-xs">
+            <span class="${isSelected ? 'font-bold text-brand-700 dark:text-brand-300' : 'font-medium text-stone-500 dark:text-warm-400'}">
+              ${isSelected ? '✓ Đang chọn khu vực này' : 'Bấm để xem quán'}
+            </span>
+            <span class="${isSelected ? 'text-brand-600 dark:text-brand-300 font-bold' : 'text-stone-400 dark:text-warm-500'}">→</span>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function selectRegion(regionId) {
+      if (selectedRegionId === regionId) return;
+      selectedRegionId = regionId;
+      // Đổi khu vực -> xóa lựa chọn quán, món, giỏ hàng và ẩn kết quả cũ
+      selectedStoreName = null;
+      selectedDishName = null;
+      cartItems = [];
+      renderCart();
+      hideStoreStatus();
+      clearPredictionResult();
+
+      renderRegions();
+      renderStores();
+      renderDishes();
+      updateActionState();
+    }
+
+    // BƯỚC 2: Render quán của khu vực đang chọn (cùng chiều cao, ảnh 16:9 cố định)
+    function renderStores() {
+      const hint = document.getElementById('stores-hint');
+      const container = document.getElementById('stores-grid');
+      const label = document.getElementById('selected-store-label');
+      const reg = getSelectedRegion();
+
+      if (!reg) {
+        hint.classList.remove('hidden');
+        container.classList.add('hidden');
+        container.classList.remove('grid');
+        container.innerHTML = '';
+        label.innerText = 'Chưa chọn quán';
+        label.className = 'text-xs font-semibold text-stone-500 dark:text-warm-400 truncate max-w-[55%]';
+        return;
+      }
+
+      hint.classList.add('hidden');
+      container.classList.remove('hidden');
+      container.classList.add('grid');
+      container.innerHTML = '';
+
+      if (selectedStoreName) {
+        label.innerText = selectedStoreName;
+        label.className = 'text-xs font-bold text-brand-700 dark:text-brand-400 truncate max-w-[55%]';
+      } else {
+        label.innerText = `Chọn 1 trong ${reg.stores.length} quán`;
+        label.className = 'text-xs font-semibold text-stone-500 dark:text-warm-400 truncate max-w-[55%]';
+      }
+
+      reg.stores.forEach(s => {
+        const isSelected = s.store === selectedStoreName;
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+        card.className = `step-reveal group h-full w-full rounded-2xl p-3.5 text-left flex flex-col justify-between transition-all border-2 cursor-pointer ${
+          isSelected
+            ? 'border-brand-600 dark:border-brand-400 bg-brand-50 dark:bg-brand-950/90 ring-2 ring-brand-500/25 dark:ring-brand-400/35 shadow-md'
+            : 'border-warm-200 dark:border-warm-800 bg-white dark:bg-warm-900 hover:border-brand-400 dark:hover:border-brand-600 hover:shadow-xs'
+        }`;
+        card.onclick = () => selectStore(s.store);
+
+        card.innerHTML = `
+          <div class="space-y-2.5 w-full">
+            <!-- Khung ảnh 16:9 cố định + nền placeholder gradient & emoji -->
+            <div class="aspect-[16/9] w-full rounded-xl overflow-hidden relative bg-gradient-to-br from-amber-100 via-orange-100 to-warm-200 dark:from-warm-800 dark:via-warm-800 dark:to-brand-950">
+              <div class="absolute inset-0 flex items-center justify-center text-3xl opacity-60 select-none" aria-hidden="true">${s.emoji}</div>
+              <img src="${s.cover_image}" alt="${s.store}"
+                class="relative z-10 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                onerror="this.style.display='none';">
+              ${isSelected ? '<span class="absolute top-2 left-2 z-20 px-2 py-0.5 rounded-full bg-brand-600 text-white text-[10px] font-bold shadow">✓ Đang chọn</span>' : ''}
+            </div>
+
+            <div class="space-y-1">
+              <h3 class="text-sm font-bold text-stone-900 dark:text-white line-clamp-2 leading-snug" title="${s.store}">
+                <span aria-hidden="true">${s.emoji}</span> ${s.store}
+              </h3>
+              <p class="text-xs text-stone-600 dark:text-warm-200 line-clamp-2 leading-relaxed" title="${s.description}">
+                ${s.description}
+              </p>
+            </div>
+          </div>
+
+          <!-- Chân thẻ căn đều ở đáy -->
+          <div class="mt-3 pt-2.5 border-t border-warm-200/70 dark:border-warm-800 w-full flex items-center justify-between gap-2 text-[11px]">
+            <span class="text-stone-600 dark:text-warm-300 font-medium truncate" title="Giờ mở cửa: ${s.open_hours}">🕒 ${s.open_hours}</span>
+            <span class="shrink-0 font-bold ${isSelected ? 'text-brand-700 dark:text-brand-300' : 'text-brand-600 dark:text-brand-400'}">
+              ${s.dishes.length} món
+            </span>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function selectStore(storeName) {
+      if (selectedStoreName === storeName) return;
+      selectedStoreName = storeName;
+      // Đổi quán -> xóa lựa chọn món, giỏ hàng và ẩn kết quả cũ
+      selectedDishName = null;
+      cartItems = [];
+      renderCart();
+      clearPredictionResult();
+
+      renderStores();
+      renderDishes();
+      refreshStoreStatus();
+      updateActionState();
+    }
+
+    // BƯỚC 3: Render món ăn của quán đang chọn (cùng chiều cao, ảnh 4:3 cố định)
+    function renderDishes() {
+      const hint = document.getElementById('dishes-hint');
+      const container = document.getElementById('dishes-grid');
+      const label = document.getElementById('selected-dish-label');
+      const storeObj = getSelectedStore();
+
+      if (!storeObj) {
+        hint.classList.remove('hidden');
+        container.classList.add('hidden');
+        container.classList.remove('grid');
+        container.innerHTML = '';
+        label.innerText = 'Chưa chọn món';
+        label.className = 'text-xs font-semibold text-stone-500 dark:text-warm-400 truncate max-w-[55%]';
+        return;
+      }
+
+      hint.classList.add('hidden');
+      container.classList.remove('hidden');
+      container.classList.add('grid');
+      container.innerHTML = '';
+
+      if (selectedDishName) {
+        label.innerText = selectedDishName;
+        label.className = 'text-xs font-bold text-brand-700 dark:text-brand-400 truncate max-w-[55%]';
+      } else {
+        label.innerText = `Chọn 1 trong ${storeObj.dishes.length} món`;
+        label.className = 'text-xs font-semibold text-stone-500 dark:text-warm-400 truncate max-w-[55%]';
+      }
+
+      storeObj.dishes.forEach(d => {
+        const isSelected = d.name === selectedDishName;
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+        card.className = `step-reveal group h-full w-full rounded-2xl p-2.5 sm:p-3 text-left flex flex-col justify-between transition-all border-2 cursor-pointer ${
+          isSelected
+            ? 'border-brand-600 dark:border-brand-400 bg-brand-50 dark:bg-brand-950/90 ring-2 ring-brand-500/25 dark:ring-brand-400/35 shadow-md'
+            : 'border-warm-200 dark:border-warm-800 bg-white dark:bg-warm-900 hover:border-brand-400 dark:hover:border-brand-600 hover:shadow-xs'
+        }`;
+        card.onclick = () => selectDish(d.name);
+
+        card.innerHTML = `
+          <div class="space-y-2 w-full">
+            <!-- Khung ảnh 4:3 cố định + nền placeholder gradient & emoji -->
+            <div class="aspect-[4/3] w-full rounded-xl overflow-hidden relative bg-gradient-to-br from-amber-100 via-orange-100 to-warm-200 dark:from-warm-800 dark:via-warm-800 dark:to-brand-950">
+              <div class="absolute inset-0 flex items-center justify-center text-3xl opacity-60 select-none" aria-hidden="true">${storeObj.emoji}</div>
+              <img src="${d.image}" alt="${d.name}"
+                class="relative z-10 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                onerror="this.style.display='none';">
+              ${isSelected ? '<span class="absolute top-2 left-2 z-20 w-6 h-6 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-bold shadow">✓</span>' : ''}
+            </div>
+            <h4 class="text-xs sm:text-[13px] font-bold text-stone-900 dark:text-white line-clamp-2 leading-snug" title="${d.name}">
+              ${d.name}
+            </h4>
+          </div>
+
+          <div class="mt-2.5 pt-2 border-t border-warm-200/70 dark:border-warm-800 w-full flex items-center justify-between text-[11px]">
+            <span class="${isSelected ? 'font-bold text-brand-700 dark:text-brand-300' : 'font-medium text-stone-500 dark:text-warm-300'}">
+              ${isSelected ? '✓ Đã chọn' : 'Chọn món'}
+            </span>
+            <span class="${isSelected ? 'text-brand-700 dark:text-brand-300 font-bold' : 'text-stone-400 dark:text-warm-500'}">→</span>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function selectDish(dishName) {
+      selectedDishName = dishName;
+      clearPredictionResult();
+      renderDishes();
+      updateActionState();
+    }
+
+    // Hình thức nhận món (Channel)
+    function setChannel(ch) {
+      selectedChannel = ch;
+      const activeClass = 'flex flex-col items-center justify-center p-2.5 rounded-xl border-2 border-brand-600 dark:border-brand-400 bg-brand-50 dark:bg-brand-950/90 text-brand-800 dark:text-brand-200 font-bold text-xs ring-2 ring-brand-500/20 dark:ring-brand-400/30 shadow-xs transition cursor-pointer';
+      const inactiveClass = 'flex flex-col items-center justify-center p-2.5 rounded-xl border border-warm-200 dark:border-warm-700 bg-warm-50/70 dark:bg-warm-800/80 text-stone-700 dark:text-warm-200 font-medium text-xs hover:border-brand-400 dark:hover:border-brand-500 transition cursor-pointer';
+
+      ['tai_quan', 'mang_di', 'giao_app'].forEach(key => {
+        const btn = document.getElementById(`channel-btn-${key}`);
+        if (btn) btn.className = (key === ch) ? activeClass : inactiveClass;
+      });
+
+      const badgeInfo = document.getElementById('channel-badge-info');
+      const desc = document.getElementById('channel-desc');
+      badgeInfo.className = 'text-[11px] font-bold text-brand-700 dark:text-brand-300';
+
+      if (ch === 'tai_quan') {
+        badgeInfo.innerText = '🍽️ Ăn tại quán';
+        desc.innerText = 'Phục vụ nóng hổi ngay tại bàn';
+      } else if (ch === 'mang_di') {
+        badgeInfo.innerText = '🥡 Mang đi';
+        desc.innerText = 'Cộng thêm thời gian đóng gói hộp & dụng cụ';
+      } else {
+        badgeInfo.innerText = '🛵 Giao qua app';
+        desc.innerText = 'Cộng thêm thời gian đóng gói & chờ tài xế gom đơn';
+      }
+
+      clearPredictionResult();
+      updateActionState();
+    }
+
+    function changeQty(delta) {
+      currentQty = Math.max(1, Math.min(20, currentQty + delta));
+      document.getElementById('qty-display').innerText = currentQty;
+      clearPredictionResult();
+    }
+
+    function setOrderMode(mode) {
+      orderMode = mode;
+      const btnNow = document.getElementById('mode-btn-now');
+      const btnSched = document.getElementById('mode-btn-sched');
+      const panelNow = document.getElementById('mode-now-panel');
+      const panelSched = document.getElementById('mode-scheduled-panel');
+
+      if (mode === 'now') {
+        btnNow.className = 'px-2.5 py-1 rounded-lg bg-white dark:bg-warm-700 text-brand-700 dark:text-brand-300 shadow-xs transition cursor-pointer whitespace-nowrap';
+        btnSched.className = 'px-2.5 py-1 rounded-lg text-stone-600 dark:text-warm-300 hover:text-stone-900 dark:hover:text-white transition cursor-pointer whitespace-nowrap';
+        panelNow.classList.remove('hidden');
+        panelSched.classList.add('hidden');
+        panelSched.classList.remove('grid');
+      } else {
+        btnSched.className = 'px-2.5 py-1 rounded-lg bg-white dark:bg-warm-700 text-brand-700 dark:text-brand-300 shadow-xs transition cursor-pointer whitespace-nowrap';
+        btnNow.className = 'px-2.5 py-1 rounded-lg text-stone-600 dark:text-warm-300 hover:text-stone-900 dark:hover:text-white transition cursor-pointer whitespace-nowrap';
+        panelSched.classList.remove('hidden');
+        panelSched.classList.add('grid');
+        panelNow.classList.add('hidden');
+      }
+
+      clearPredictionResult();
+      if (selectedStoreName) refreshStoreStatus();
+    }
+
+    function onScheduledTimeChange() {
+      clearPredictionResult();
+      if (selectedStoreName) refreshStoreStatus();
+    }
+
+    // Dòng trạng thái quán (CHỈ HIỆN SAU KHI ĐÃ CHỌN QUÁN)
+    function hideStoreStatus() {
+      document.getElementById('store-status-wrapper').classList.add('hidden');
+    }
+
+    async function refreshStoreStatus() {
+      if (!selectedStoreName) {
+        hideStoreStatus();
+        return;
+      }
+      try {
+        let url = `/api/store-status?store=${encodeURIComponent(selectedStoreName)}&mode=${encodeURIComponent(orderMode)}`;
+        if (orderMode === 'scheduled') {
+          const h = document.getElementById('sched-hour').value;
+          const wd = document.getElementById('sched-weekday').value;
+          url += `&hour=${encodeURIComponent(h)}&weekday=${encodeURIComponent(wd)}`;
+        }
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const st = await res.json();
+        renderStoreStatusBox(st.queue_status_text, st.queue_badge_color);
+      } catch (e) {
+        console.error('Lỗi trạng thái quán:', e);
+      }
+    }
+
+    function renderStoreStatusBox(statusText, badgeColor) {
+      const wrapper = document.getElementById('store-status-wrapper');
+      const box = document.getElementById('queue-status-box');
+      const dot = document.getElementById('queue-status-dot');
+      const textEl = document.getElementById('queue-status-text');
+
+      wrapper.classList.remove('hidden');
+      textEl.innerText = statusText;
+
+      const styles = {
+        emerald: ['bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800/80', 'bg-emerald-500', 'text-emerald-900 dark:text-emerald-200'],
+        blue: ['bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-800/80', 'bg-blue-500', 'text-blue-900 dark:text-blue-200'],
+        amber: ['bg-amber-50 dark:bg-amber-950/60 border-amber-200 dark:border-amber-800/80', 'bg-amber-500', 'text-amber-900 dark:text-amber-200'],
+        rose: ['bg-rose-50 dark:bg-rose-950/60 border-rose-200 dark:border-rose-800/80', 'bg-rose-500', 'text-rose-900 dark:text-rose-200'],
+      };
+      const [boxCls, dotCls, txtCls] = styles[badgeColor] || styles.amber;
+      box.className = `inline-flex flex-wrap items-center gap-2 px-3 py-1.5 rounded-xl border text-xs ${boxCls}`;
+      dot.className = `w-2 h-2 rounded-full shrink-0 ${dotCls}`;
+      textEl.className = `font-semibold ${txtCls}`;
+    }
+
+    // Giỏ hàng nhiều món cùng quán
+    function addToCart() {
+      if (!selectedStoreName || !selectedDishName) return;
+      cartItems.push({ dish: selectedDishName, qty: currentQty, store: selectedStoreName });
+      clearPredictionResult();
+      renderCart();
+    }
+
+    function renderCart() {
+      const cartSection = document.getElementById('cart-section');
+      const cartList = document.getElementById('cart-items-list');
+      const badge = document.getElementById('cart-badge');
+
+      if (cartItems.length === 0) {
+        cartSection.classList.add('hidden');
+        badge.classList.add('hidden');
+        return;
+      }
+      cartSection.classList.remove('hidden');
+      badge.classList.remove('hidden');
+      badge.innerText = cartItems.length;
+
+      cartList.innerHTML = '';
+      cartItems.forEach((item, i) => {
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between text-xs py-1.5 px-3 bg-warm-50 dark:bg-warm-800 rounded-xl border border-warm-200 dark:border-warm-700';
+        row.innerHTML = `
+          <span class="font-semibold text-stone-800 dark:text-warm-100">
+            ${item.dish} <strong class="text-brand-600 dark:text-brand-400">x${item.qty}</strong>
+          </span>
+          <button type="button" onclick="removeCartItem(${i})" class="text-stone-500 hover:text-rose-500 text-xs px-1 cursor-pointer">✕</button>
+        `;
+        cartList.appendChild(row);
+      });
+    }
+
+    function removeCartItem(idx) {
+      cartItems.splice(idx, 1);
+      clearPredictionResult();
+      renderCart();
+    }
+
+    function clearCart() {
+      cartItems = [];
+      clearPredictionResult();
+      renderCart();
+    }
+
+    // GỌI API DỰ ĐOÁN
+    async function triggerPredict() {
+      if (!selectedStoreName || !selectedDishName || !selectedChannel) {
+        updateActionState();
+        return;
+      }
+
+      const payload = {
+        store: selectedStoreName,
+        dish: selectedDishName,
+        qty: currentQty,
+        channel: selectedChannel,
+        mode: orderMode
+      };
+
+      if (orderMode === 'scheduled') {
+        payload.hour = parseInt(document.getElementById('sched-hour').value);
+        payload.weekday = document.getElementById('sched-weekday').value;
+      }
+      if (demoOverrideQueue !== null) payload.queue_override = demoOverrideQueue;
+      if (demoOverrideStaff !== null) payload.staff_override = demoOverrideStaff;
+      if (cartItems.length > 0) {
+        payload.cart = cartItems.map(it => ({ dish: it.dish, qty: it.qty }));
+      }
+
+      document.getElementById('result-empty').classList.add('hidden');
+      document.getElementById('result-card').classList.add('hidden');
+      document.getElementById('result-loading').classList.remove('hidden');
+
+      try {
+        const response = await fetch('/api/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.detail || 'Lỗi khi tính toán thời gian.');
+        }
+
+        const data = await response.json();
+        lastPredictionData = data;
+        renderResult(data);
+        loadHourlyEtaRecommendation(selectedStoreName, selectedDishName, currentQty, selectedChannel, data.weekday, data.hour);
+      } catch (err) {
+        alert(err.message);
+        document.getElementById('result-empty').classList.remove('hidden');
+      } finally {
+        document.getElementById('result-loading').classList.add('hidden');
+      }
+    }
+
+    function renderResult(data) {
+      const card = document.getElementById('result-card');
+      card.classList.remove('hidden');
+
+      document.getElementById('res-badge-mode').innerText = data.mode === 'now' ? '⚡ Đơn đặt ngay' : `📅 Hẹn giờ lúc ${data.time_display}`;
+      document.getElementById('res-badge-channel').innerText = data.channel_label;
+      document.getElementById('res-badge-staff').innerText = `👨‍🍳 ${data.staff_label}`;
+      document.getElementById('res-title').innerText = data.is_multi_item ? `Đơn hàng gộp ${data.cart_details.length} món` : `${data.dish} (x${data.qty})`;
+      document.getElementById('res-store-name').innerText = `${data.store} · ${data.district}`;
+
+      // Đồng bộ trạng thái quán với kết quả thực tế (kể cả chế độ demo)
+      const shortStatus = data.queue_status_text.replace(' (ước lượng mô phỏng)', '');
+      renderStoreStatusBox(shortStatus, data.queue_badge_color);
+
+      const queueBadge = document.getElementById('res-queue-badge');
+      queueBadge.innerText = `${data.queue_label} (~${data.queue_estimated} đơn chờ)`;
+      const badgeStyles = {
+        emerald: 'bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-200',
+        amber: 'bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200',
+        rose: 'bg-rose-100 dark:bg-rose-950 text-rose-900 dark:text-rose-200',
+        blue: 'bg-blue-100 dark:bg-blue-950 text-blue-900 dark:text-blue-200',
+      };
+      queueBadge.className = `px-3 py-1 rounded-full text-xs font-bold inline-block ${badgeStyles[data.queue_badge_color] || badgeStyles.blue}`;
+      document.getElementById('res-queue-note').innerText = data.queue_note;
+
+      const targetMin = data.prediction.random_forest;
+      animateNumber('res-eta-number', 0, targetMin, 650);
+
+      const circle = document.getElementById('progress-circle');
+      const fraction = Math.min(1.0, targetMin / 40);
+      circle.style.strokeDashoffset = 440 - (440 * fraction);
+
+      const [p10, p90] = data.prediction.interval_10_90;
+      document.getElementById('res-interval').innerText = `${p10} – ${p90} phút`;
+      document.getElementById('res-ready-time').innerText = data.prediction.estimated_ready_time;
+
+      const reasonsList = document.getElementById('reasons-list');
+      reasonsList.innerHTML = '';
+      const reasonsArr = (data.reasons && data.reasons.length > 0)
+        ? data.reasons
+        : ['Thời gian chuẩn bị trong điều kiện bình thường.'];
+      reasonsArr.forEach(r => {
+        const li = document.createElement('li');
+        li.className = 'leading-relaxed';
+        li.innerText = r;
+        reasonsList.appendChild(li);
+      });
+    }
+
+    function animateNumber(elementId, start, end, duration) {
+      const el = document.getElementById(elementId);
+      const startTime = performance.now();
+      function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const ease = 1 - Math.pow(1 - progress, 3);
+        el.innerText = (start + (end - start) * ease).toFixed(1);
+        if (progress < 1) requestAnimationFrame(update);
+        else el.innerText = end.toFixed(1);
+      }
+      requestAnimationFrame(update);
+    }
+
+    // Gợi ý giờ đặt nhanh nhất
+    async function loadHourlyEtaRecommendation(store, dish, qty, channel, weekday, currentHour) {
+      try {
+        const url = `/api/hourly-eta?store=${encodeURIComponent(store)}&dish=${encodeURIComponent(dish)}&qty=${qty}&channel=${encodeURIComponent(channel)}&weekday=${encodeURIComponent(weekday)}&current_hour=${currentHour}`;
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const pill = document.getElementById('best-time-pill');
+        const text = document.getElementById('best-time-text');
+        if (data.has_recommendation) {
+          pill.className = 'self-start sm:self-auto px-2.5 py-0.5 rounded-full bg-brand-600 text-white text-[11px] font-bold shadow-xs';
+          pill.innerText = `Nhanh hơn ~${Math.round(data.diff_minutes)}p lúc ${String(data.best_hour).padStart(2, '0')}:00`;
+        } else {
+          pill.className = 'self-start sm:self-auto px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-[11px] font-bold shadow-xs';
+          pill.innerText = 'Thời điểm thuận lợi';
+        }
+        text.innerText = data.recommendation;
+        renderHourlyChart(data.hourly_data, data.current_hour, data.best_hour);
+      } catch (e) {
+        console.error('Lỗi hourly ETA:', e);
+      }
+    }
+
+    function renderHourlyChart(hourlyData, currentHour, bestHour) {
+      const ctx = document.getElementById('hourlyEtaChart').getContext('2d');
+      const isDark = document.documentElement.classList.contains('dark');
+      const textColor = isDark ? '#D9C2AD' : '#543D2C';
+      const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)';
+
+      const labels = hourlyData.map(d => d.label);
+      const values = hourlyData.map(d => d.eta);
+      const bgColors = hourlyData.map(d => {
+        if (d.hour === currentHour) return 'rgba(234, 88, 12, 0.92)';
+        if (d.hour === bestHour) return 'rgba(16, 185, 129, 0.88)';
+        return d.is_peak ? 'rgba(251, 146, 60, 0.50)' : 'rgba(156, 163, 175, 0.40)';
+      });
+
+      if (hourlyChartInstance) hourlyChartInstance.destroy();
+      hourlyChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: values,
+            backgroundColor: bgColors,
+            borderRadius: 4,
+            maxBarThickness: 20
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (c) => `${c.parsed.y} phút (Đơn chờ: ~${hourlyData[c.dataIndex].queue}, Bếp: ${hourlyData[c.dataIndex].staff} người)`
+              }
+            }
+          },
+          scales: {
+            x: { ticks: { color: textColor, font: { size: 10 } }, grid: { display: false } },
+            y: {
+              ticks: { color: textColor, font: { size: 10 } },
+              grid: { color: gridColor },
+              title: { display: true, text: 'Phút', color: textColor, font: { size: 10 } }
+            }
+          }
+        }
+      });
+    }
+
+    function updateHourlyChartTheme() {
+      if (!hourlyChartInstance) return;
+      const isDark = document.documentElement.classList.contains('dark');
+      const textColor = isDark ? '#D9C2AD' : '#543D2C';
+      const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)';
+      hourlyChartInstance.options.scales.x.ticks.color = textColor;
+      hourlyChartInstance.options.scales.y.ticks.color = textColor;
+      hourlyChartInstance.options.scales.y.grid.color = gridColor;
+      hourlyChartInstance.options.scales.y.title.color = textColor;
+      hourlyChartInstance.update();
+    }
+
+    // Phản hồi thời gian thực tế
+    function openFeedbackModal() {
+      if (!lastPredictionData) return;
+      document.getElementById('feedback-actual-mins').value = '';
+      document.getElementById('feedback-modal').classList.remove('hidden');
+      document.getElementById('feedback-modal').classList.add('flex');
+    }
+
+    function closeFeedbackModal() {
+      document.getElementById('feedback-modal').classList.add('hidden');
+      document.getElementById('feedback-modal').classList.remove('flex');
+    }
+
+    async function submitFeedback() {
+      const val = parseFloat(document.getElementById('feedback-actual-mins').value);
+      if (isNaN(val) || val < 1 || val > 180) {
+        alert('Vui lòng nhập số phút hợp lệ (từ 1 đến 180 phút)!');
+        return;
+      }
+      const payload = {
+        store: lastPredictionData.store,
+        dish: lastPredictionData.dish,
+        qty: lastPredictionData.qty,
+        channel: lastPredictionData.channel,
+        staff: lastPredictionData.staff_estimated || 2,
+        hour: lastPredictionData.hour,
+        weekday: lastPredictionData.weekday,
+        queue_estimated: lastPredictionData.queue_estimated,
+        predicted_minutes: lastPredictionData.prediction.random_forest,
+        actual_minutes: val,
+        is_demo: lastPredictionData.is_demo || 0
+      };
+      try {
+        const res = await fetch('/api/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Không thể gửi phản hồi.');
+        }
+        const data = await res.json();
+        closeFeedbackModal();
+        alert(data.message);
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    // Chế độ Demo kín đáo ở chân trang
+    function openDemoModal() {
+      document.getElementById('demo-modal').classList.remove('hidden');
+      document.getElementById('demo-modal').classList.add('flex');
+    }
+
+    function closeDemoModal() {
+      document.getElementById('demo-modal').classList.add('hidden');
+      document.getElementById('demo-modal').classList.remove('flex');
+    }
+
+    function toggleDemoMode() {
+      const isChecked = document.getElementById('demo-mode-toggle').checked;
+      const controls = document.getElementById('demo-override-controls');
+      if (isChecked) {
+        controls.classList.remove('hidden');
+        demoOverrideQueue = parseInt(document.getElementById('demo-queue-slider').value);
+        demoOverrideStaff = parseInt(document.getElementById('demo-staff-slider').value);
+      } else {
+        controls.classList.add('hidden');
+        demoOverrideQueue = null;
+        demoOverrideStaff = null;
+      }
+      clearPredictionResult();
+    }
+
+    function updateDemoQueue(val) {
+      demoOverrideQueue = parseInt(val);
+      document.getElementById('demo-queue-val').innerText = val;
+      const badge = document.getElementById('demo-queue-badge');
+      if (demoOverrideQueue <= 4) {
+        badge.innerText = 'Vắng khách';
+        badge.className = 'px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[10px]';
+      } else if (demoOverrideQueue <= 11) {
+        badge.innerText = 'Vừa phải';
+        badge.className = 'px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 text-[10px]';
+      } else if (demoOverrideQueue <= 18) {
+        badge.innerText = 'Khá đông';
+        badge.className = 'px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-[10px]';
+      } else {
+        badge.innerText = 'Rất đông';
+        badge.className = 'px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 text-[10px]';
+      }
+      clearPredictionResult();
+    }
+
+    function updateDemoStaff(val) {
+      demoOverrideStaff = parseInt(val);
+      document.getElementById('demo-staff-val').innerText = val;
+      const badge = document.getElementById('demo-staff-badge');
+      if (demoOverrideStaff === 1) {
+        badge.innerText = '1 người (Thiếu người)';
+        badge.className = 'px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 text-[10px]';
+      } else if (demoOverrideStaff === 2) {
+        badge.innerText = '2 người (Tiêu chuẩn)';
+        badge.className = 'px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 text-[10px]';
+      } else if (demoOverrideStaff === 3) {
+        badge.innerText = '3 người (Đầy đủ)';
+        badge.className = 'px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[10px]';
+      } else {
+        badge.innerText = '4 người (Tối đa)';
+        badge.className = 'px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 text-[10px]';
+      }
+      clearPredictionResult();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchCatalog();
+    });
+  </script>
+</body>
+</html>

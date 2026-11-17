@@ -1,0 +1,189 @@
+{
+  "models": {
+    "baseline": {
+      "mae": 3.98,
+      "rmse": 5.53,
+      "r2": 0.368,
+      "pct_within_5min": 71.84
+    },
+    "linear": {
+      "mae": 2.34,
+      "rmse": 3.79,
+      "r2": 0.7028,
+      "pct_within_5min": 90.6
+    },
+    "random_forest": {
+      "mae": 2.3,
+      "rmse": 3.74,
+      "r2": 0.7105,
+      "pct_within_5min": 91.13
+    }
+  },
+  "conformal_calibration": {
+    "target_coverage": 80.0,
+    "q_calib": 0.48,
+    "pre_coverage_test": 69.65,
+    "post_coverage_test": 77.96,
+    "calibration_samples": 2422
+  },
+  "sanity_check": {
+    "n_samples": 500,
+    "queue_monotonicity": {
+      "violations": 41,
+      "rate_pct": 8.2,
+      "max_drop_min": 1.77
+    },
+    "qty_monotonicity": {
+      "violations": 14,
+      "rate_pct": 2.8,
+      "max_drop_min": 0.84
+    },
+    "staff_monotonicity": {
+      "violations": 77,
+      "rate_pct": 15.4
+    },
+    "channel_sanity": {
+      "app_longer_rate_pct": 95.0,
+      "avg_app_extra_minutes": 2.7
+    }
+  },
+  "unseen_store_evaluation": {
+    "n_stores": 8,
+    "overall": {
+      "mae": 4.25,
+      "rmse": 5.92,
+      "r2": 0.3089,
+      "pct_within_5min": 69.27
+    },
+    "per_store": [
+      {
+        "store": "Tiệm Trà Cố Đô",
+        "region": "Quận Hải Châu",
+        "n_samples": 1935,
+        "mae": 1.88,
+        "rmse": 3.22,
+        "r2": 0.3785,
+        "pct_within_5min": 97.21,
+        "mean_actual": 10.03,
+        "mean_pred": 10.64,
+        "bias": 0.61,
+        "has_shared_group": true,
+        "shared_dish_count": 3
+      },
+      {
+        "store": "Trà & Cà Phê Muối Bãi Biển",
+        "region": "Quận Ngũ Hành Sơn",
+        "n_samples": 1948,
+        "mae": 2.3,
+        "rmse": 3.12,
+        "r2": 0.3294,
+        "pct_within_5min": 95.17,
+        "mean_actual": 9.31,
+        "mean_pred": 10.75,
+        "bias": 1.44,
+        "has_shared_group": true,
+        "shared_dish_count": 3
+      },
+      {
+        "store": "Mì Quảng Hạt Sen",
+        "region": "Quận Hải Châu",
+        "n_samples": 1985,
+        "mae": 2.45,
+        "rmse": 3.94,
+        "r2": 0.4029,
+        "pct_within_5min": 90.68,
+        "mean_actual": 15.03,
+        "mean_pred": 13.16,
+        "bias": -1.87,
+        "has_shared_group": true,
+        "shared_dish_count": 3
+      },
+      {
+        "store": "Bánh Xèo Làng Đá",
+        "region": "Quận Ngũ Hành Sơn",
+        "n_samples": 1989,
+        "mae": 3.45,
+        "rmse": 5.22,
+        "r2": 0.3845,
+        "pct_within_5min": 79.29,
+        "mean_actual": 18.57,
+        "mean_pred": 16.07,
+        "bias": -2.49,
+        "has_shared_group": true,
+        "shared_dish_count": 4
+      },
+      {
+        "store": "Cơm Gà Phố Cổ",
+        "region": "Quận Hải Châu",
+        "n_samples": 1696,
+        "mae": 5.09,
+        "rmse": 5.61,
+        "r2": -0.7568,
+        "pct_within_5min": 53.12,
+        "mean_actual": 12.56,
+        "mean_pred": 17.28,
+        "bias": 4.72,
+        "has_shared_group": false,
+        "shared_dish_count": 0
+      },
+      {
+        "store": "Bún Chả Cá Biển Xanh",
+        "region": "Quận Sơn Trà",
+        "n_samples": 1707,
+        "mae": 5.33,
+        "rmse": 5.91,
+        "r2": -0.7252,
+        "pct_within_5min": 48.33,
+        "mean_actual": 12.74,
+        "mean_pred": 17.62,
+        "bias": 4.89,
+        "has_shared_group": true,
+        "shared_dish_count": 0
+      },
+      {
+        "store": "Mì Quảng Gió Biển",
+        "region": "Quận Sơn Trà",
+        "n_samples": 2023,
+        "mae": 5.97,
+        "rmse": 7.32,
+        "r2": -0.428,
+        "pct_within_5min": 47.6,
+        "mean_actual": 18.59,
+        "mean_pred": 12.67,
+        "bias": -5.92,
+        "has_shared_group": true,
+        "shared_dish_count": 3
+      },
+      {
+        "store": "Bánh Xèo Sông Hàn",
+        "region": "Quận Sơn Trà",
+        "n_samples": 1717,
+        "mae": 8.19,
+        "rmse": 10.22,
+        "r2": -0.5391,
+        "pct_within_5min": 34.3,
+        "mean_actual": 23.38,
+        "mean_pred": 15.31,
+        "bias": -8.07,
+        "has_shared_group": true,
+        "shared_dish_count": 4
+      }
+    ]
+  },
+  "best_rf_params": {
+    "n_estimators": 100,
+    "min_samples_leaf": 2,
+    "max_features": 0.8,
+    "max_depth": 20
+  },
+  "dataset_summary": {
+    "total_samples": 15000,
+    "n_stores": 8,
+    "proper_train_samples": 10002,
+    "calib_samples": 2422,
+    "train_samples": 12424,
+    "test_samples": 2468,
+    "train_period": "2026-09-01 đến 2026-10-05",
+    "test_period": "2026-10-06 đến 2026-10-12"
+  }
+}

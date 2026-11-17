@@ -1,0 +1,61 @@
+{
+  "models": {
+    "baseline": {
+      "mae": 3.88,
+      "rmse": 5.52,
+      "r2": 0.3797,
+      "pct_within_5min": 73.64
+    },
+    "linear": {
+      "mae": 2.32,
+      "rmse": 3.91,
+      "r2": 0.6884,
+      "pct_within_5min": 91.46
+    },
+    "random_forest": {
+      "mae": 2.25,
+      "rmse": 3.94,
+      "r2": 0.6846,
+      "pct_within_5min": 91.58
+    }
+  },
+  "conformal_calibration": {
+    "target_coverage": 80.0,
+    "q_calib": 0.46,
+    "pre_coverage_test": 69.55,
+    "post_coverage_test": 79.32,
+    "calibration_samples": 1651
+  },
+  "log_transform_decision": {
+    "direct_mae": 2.18,
+    "log_mae": 2.15
+  },
+  "sanity_check": {
+    "n_samples": 500,
+    "queue_monotonicity": {
+      "violations": 20,
+      "rate_pct": 4.0,
+      "max_drop_min": 1.21
+    },
+    "qty_monotonicity": {
+      "violations": 17,
+      "rate_pct": 3.4,
+      "max_drop_min": 1.39
+    },
+    "staff_monotonicity": {
+      "violations": 70,
+      "rate_pct": 14.0
+    },
+    "channel_sanity": {
+      "app_longer_rate_pct": 97.2,
+      "avg_app_extra_minutes": 2.66
+    }
+  },
+  "dataset_summary": {
+    "total_samples": 10000,
+    "train_samples": 8292,
+    "test_samples": 1639,
+    "train_period": "2026-09-01 đến 2026-10-05",
+    "test_period": "2026-10-06 đến 2026-10-12"
+  }
+}

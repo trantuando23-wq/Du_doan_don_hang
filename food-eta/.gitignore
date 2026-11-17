@@ -1,0 +1,29 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Môi trường ảo (Virtual Environments)
+venv/
+.venv/
+env/
+ENV/
+
+# Jupyter / IDE
+.ipynb_checkpoints
+.vscode/
+.idea/
+
+# Testing & Logs
+.pytest_cache/
+*.log
+test_screenshot.png
+screenshot*.png
+models/backup/
+
+# Hệ điều hành
+.DS_Store
+Thumbs.db
+
